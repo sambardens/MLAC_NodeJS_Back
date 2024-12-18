@@ -52,16 +52,18 @@ app.options('*', (req, res) => {
 
 // Debugging Logs to Trace Requests
 app.use((req, res, next) => {
-    console.log('Request Origin:', req.headers.origin);
-    console.log('Request Path:', req.path);
-    console.log('Request Method:', req.method);
+    console.log('--- Incoming Request ---');
+    console.log('Origin:', req.headers.origin);
+    console.log('Path:', req.path);
+    console.log('Method:', req.method);
     next();
 });
 
 // Log outgoing response headers
 app.use((req, res, next) => {
     res.on('finish', () => {
-        console.log('Response Headers:', res.getHeaders());
+        console.log('--- Response Headers ---');
+        console.log(res.getHeaders());
     });
     next();
 });
