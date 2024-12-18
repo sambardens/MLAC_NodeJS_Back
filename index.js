@@ -7,8 +7,6 @@ import errorsMiddleware from './src/errors/errors.middleware.js';
 import cookieParser from 'cookie-parser';
 import fileUpload from 'express-fileupload';
 import * as path from 'path';
-import { createDeletionBap, dropBap } from './utils/drop-bap.js';
-import futureCreatorBap from './utils/future-creator-bap.js';
 
 // Load environment variables
 dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
@@ -20,36 +18,30 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
-// CORS configuration
-const allowedOrigins = [
-    'http://localhost:3000', // For local development
-    'https://mlac-react-front-hwnbdac8r-sam-bardens-projects.vercel.app', // Deployed frontend
-    'https://major-labl.pixy.pro', // Other origins
-    'https://major-labl-admin.pixy.pro', // Admin portal origin
-];
+// Simplified CORS Configuration
+app.use(cors({
+    origin: '*', // Temporarily allow all origins for debugging
+    credentials: true, // Allow cookies and credentials
+}));
 
-// CORS middleware
-app.use(
-    cors({
-        origin: (origin, callback) => {
-            if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, true);
-            } else {
-                console.error(`CORS blocked for origin: ${origin}`);
-                callback(new Error('Not allowed by CORS'));
-            }
-        },
-        credentials: true, // Allow credentials like cookies
-    })
-);
+// Global Preflight Handling Middleware
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end(); // Respond to preflight requests
+    }
+    next();
+});
 
-// Explicit handling for preflight requests
-app.options('*', (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.sendStatus(200);
+// Debugging Logs to Trace Requests
+app.use((req, res, next) => {
+    console.log(`Request Method: ${req.method}`);
+    console.log(`Request Origin: ${req.headers.origin}`);
+    console.log(`Request Path: ${req.path}`);
+    next();
 });
 
 // Middleware for file uploads and static files
