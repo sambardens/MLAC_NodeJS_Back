@@ -18,29 +18,51 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
-// Simplified CORS Configuration
-app.use(cors({
-    origin: '*', // Temporarily allow all origins for debugging
-    credentials: true, // Allow cookies and credentials
-}));
+// Define allowed origins for CORS
+const allowedOrigins = [
+    'http://localhost:3000', // Local development
+    'https://mlac-react-front.vercel.app', // Deployed frontend
+];
 
-// Global Preflight Handling Middleware
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end(); // Respond to preflight requests
-    }
-    next();
+// CORS Middleware
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true); // Allow request
+            } else {
+                console.error(`Blocked by CORS: ${origin}`);
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed methods
+        allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+        credentials: true, // Allow cookies and credentials
+    })
+);
+
+// Explicitly handle preflight (OPTIONS) requests globally
+app.options('*', (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.sendStatus(200); // Send OK status for preflight
 });
 
 // Debugging Logs to Trace Requests
 app.use((req, res, next) => {
-    console.log(`Request Method: ${req.method}`);
-    console.log(`Request Origin: ${req.headers.origin}`);
-    console.log(`Request Path: ${req.path}`);
+    console.log('Request Origin:', req.headers.origin);
+    console.log('Request Path:', req.path);
+    console.log('Request Method:', req.method);
+    next();
+});
+
+// Log outgoing response headers
+app.use((req, res, next) => {
+    res.on('finish', () => {
+        console.log('Response Headers:', res.getHeaders());
+    });
     next();
 });
 
