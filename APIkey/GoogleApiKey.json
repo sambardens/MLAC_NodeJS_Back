@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "proven-airship-365914",
+  "private_key_id": "30c0555f383745dc92d7087774778cb2ef94e48a",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCovZP0IWLsOxNs\nVEVnw+whlQzTx3RuIu3y+Yur/e2Ynoq5jP9z0Roj6zbCeW5dM7fOElwLgH6tQ9Oj\n6zuiNueSFRzDxf0zk2MC/D/U0p/ATDnNZIjweNIZd89dagVhY0yFgDWeyV/fXkE7\n0u004f3wjH8ECnbU5QmlQpYpqxCPd1Lq1T3STqVffAGDMj+B+9mxWh2Y7bpgMeMz\nIwhi0SX6x7X7CL/2Sl6CFgRQiDNishwvFHaAt6m7HQKetnAzkYJ37MgvZqee8UL9\nRROCNlSmhJoCJdwPKjj+H2V3jFDtwCy3tb50cK4mrgVYkis2xIFBtwM2Lv/AqixL\nuDC7XbjvAgMBAAECggEAU/OuDsIlk1549Waf+VZSvwqHDT6owLsEI+TgBrwZX9tR\nLavm1FpuZPx7jBoaPKikhBRCUz6kx9N9EorQao5ifB2g6A4zQVvM4QlbQKlh7ax+\n/Z9NOkcCUMV5GALNlnxu7+SvyMZrupgMYJU6ixr82pcsAniqUpV5TQ1p5GVFofpv\nA0vPXJ0FHRTTPzfY0rKU2dFr2h5niIdYaDxELP7DsXABbmg4YT0qcJD/9y5KcKXO\nj1KlXjqyz52NbZhgXDH9LNuTCfcl0kqttyyaRjk6ndiR9XGVi/FxkJ09FQaPxNJu\nxT+OgYxSolewuRxv3GFgQK293oEzIN58tzoNG5P2MQKBgQDXxiH4FZiJwt7gNyY/\nosGfvmA0CPceO/VoCWFOj4/eBL03JYrZ0R9hmb2tDAiQJw/XA3AWNM/Nhv4YXvD1\n/gLjTCjdkpZN/oWqebhh2YTBagcP/yUHL4nPez2YOvILej8V9PTCvQebDT+2PkJz\nLq0mRmTeoo+nTdp1bJiEeKE2MwKBgQDIMsNs3WKyl37GOLFRBNcFS4lz4/RmCeVj\nEBfmELkyWkn5b9Xv/rc7C4X7+JcNoGlSrnuPQZarXa7KQPtmi4a6cJWEF/vdH/gG\nOrPcVQy05PBbuGNPh89J0qkqKa8KJa4wqCqt+tC56zswRbBMUiKX8FxIUFwUDBp+\nWCdRRFBeVQKBgHKuS7+fOsN9XxesOBf6WQ6eEGOXoD/hfj0dPyqSAtTtj+OPgIzk\nKNmm7LjcfHChUjnlCd3Dk+6YoNQzIb6cksxb3hxlnJ03ebNxnh3jjjt+LuLBqNx4\n17X+um3+ZkbTYlQ5LR2Tekdec05ZKNgvJrgBEfuCSveQ2VsvrKA7vPMhAoGAZSRw\nYxG+CWhMXizKOJpvX3d4LBqgoOSjBVdeG5ebWPsQoHqF5UgUnjoGKPTAq9u9Gk6Y\nkhma21zrL7eAy5/2Iz856pCLaH38Onlx4QD++G0pmc0gL0/3w94wJOMGUeQTivWL\nCnbK+QME1jB/Dy/31jdTCB3BR0eOIwK6am5PBDkCgYAiFtb7tgrX32gD9SdAwiI3\nA11lsRNrRlxXx2GTm/Udm+8zHIo5jBDBhhLxSMWRkNbFQLiQrDkGridWa3vNnN59\nCf/B605K7UFcsYSGG4jAitjSuJ6vVr6jcuOYiFjMAc5DEoNUAGYH4a5Ls4Ri1v3G\niteigqDU+xNhnpwmc5vVjw==\n-----END PRIVATE KEY-----\n",
+  "client_email": "major-labl@proven-airship-365914.iam.gserviceaccount.com",
+  "client_id": "104479368863571017664",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/major-labl%40proven-airship-365914.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

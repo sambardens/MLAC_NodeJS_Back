@@ -1,0 +1,9 @@
+node_modules
+.idea
+example.txt
+package-*.json
+images/
+videos/
+tracks/
+.env
+.prettierrc
