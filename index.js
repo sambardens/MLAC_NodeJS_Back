@@ -11,7 +11,10 @@ import errorsMiddleware from './src/errors/errors.middleware.js';
 // Load environment variables
 dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 
-const PORT = process.env.PORT || 3000; // Use Railway PORT
+const PORT = process.env.PORT || 3000; // Default to 3000 for local testing
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
 
 const app = express();
 
