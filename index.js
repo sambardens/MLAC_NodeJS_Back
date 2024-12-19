@@ -24,21 +24,26 @@ const allowedOrigins = [
     'https://mlac-react-front.vercel.app', // Deployed frontend
 ];
 
-app.use(
-    cors({
-        origin: function (origin, callback) {
-            // Allow requests with no origin (like mobile apps, curl requests)
-            if (!origin) return callback(null, true);
-            if (allowedOrigins.indexOf(origin) === -1) {
-                const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-                console.error(`CORS Error: ${msg} Origin: ${origin}`);
-                return callback(new Error(msg), false);
-            }
+// Enhanced CORS Middleware with Logging
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps, curl requests)
+        if (!origin) {
+            console.log('No origin. Allowing request.');
             return callback(null, true);
-        },
-        credentials: true, // Allow cookies and authentication headers
-    })
-);
+        }
+        if (allowedOrigins.includes(origin)) {
+            console.log(`Origin allowed: ${origin}`);
+            return callback(null, true);
+        } else {
+            console.warn(`Origin blocked by CORS: ${origin}`);
+            return callback(new Error('CORS policy does not allow access from this origin'), false);
+        }
+    },
+    credentials: true, // Allow cookies and authentication headers
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
 // Middleware to Parse JSON and URL-Encoded Data
 app.use(express.json());
@@ -92,7 +97,7 @@ async function startApplication() {
         console.log('Database connection established successfully.');
 
         // Sync Database Models (Use { force: true } cautiously in production)
-        await scheme.sync(); 
+        await scheme.sync();
         console.log('Database synchronized successfully.');
 
         // Start Express Server
