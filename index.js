@@ -5,11 +5,16 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import fileUpload from 'express-fileupload';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import scheme from './database/scheme.js';
 import routes from './src/routes.js';
 import errorsMiddleware from './src/errors/errors.middleware.js';
 
-// Initialize Environment Variables
+// Resolve __dirname in ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load Environment Variables
 dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 
 // Initialize Express App
@@ -18,62 +23,72 @@ const app = express();
 // Define Port
 const PORT = process.env.PORT || 3000; // Default to 3000 for local testing
 
-// CORS Configuration
+// Allowed Origins for CORS
 const allowedOrigins = [
     'http://localhost:3000', // Local development
     'https://mlac-react-front.vercel.app', // Deployed frontend
 ];
 
-// Enhanced CORS Middleware with Logging
-app.use(cors({
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps, curl requests)
-        if (!origin) {
-            console.log('No origin. Allowing request.');
-            return callback(null, true);
-        }
-        if (allowedOrigins.includes(origin)) {
-            console.log(`Origin allowed: ${origin}`);
-            return callback(null, true);
-        } else {
-            console.warn(`Origin blocked by CORS: ${origin}`);
-            return callback(new Error('CORS policy does not allow access from this origin'), false);
-        }
-    },
-    credentials: true, // Allow cookies and authentication headers
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+// CORS Configuration
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            // Allow requests with no origin (e.g., mobile apps, curl)
+            if (!origin) {
+                console.log('CORS: Request with no origin allowed');
+                return callback(null, true);
+            }
+            if (allowedOrigins.includes(origin)) {
+                console.log(`CORS: Request from allowed origin: ${origin}`);
+                return callback(null, true);
+            } else {
+                console.error(`CORS: Request blocked from origin: ${origin}`);
+                return callback(new Error('CORS policy does not allow access from this origin'), false);
+            }
+        },
+        credentials: true, // Allow cookies and credentials
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+    })
+);
 
-// Middleware to Parse JSON and URL-Encoded Data
+// Handle Preflight Requests Globally
+app.options('*', (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.sendStatus(200);
+});
+
+// Middleware for Parsing JSON and Cookies
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // For form-urlencoded data
-
-// Middleware for Cookie Parsing
 app.use(cookieParser());
 
 // Middleware for File Uploads
 app.use(fileUpload({}));
 
 // Serve Static Files
-app.use(express.static(path.resolve('images')));
-app.use(express.static(path.resolve('videos')));
-app.use('/apidoc', express.static('apidoc'));
+app.use(express.static(path.resolve(__dirname, 'images')));
+app.use(express.static(path.resolve(__dirname, 'videos')));
+app.use('/apidoc', express.static(path.resolve(__dirname, 'apidoc')));
 
-// Debugging Middleware: Log Incoming Requests
+// Debugging Middleware for Incoming Requests
 app.use((req, res, next) => {
     console.log('--- Incoming Request ---');
     console.log('Path:', req.path);
     console.log('Method:', req.method);
     console.log('Headers:', req.headers);
+    console.log('Body:', req.body);
     next();
 });
 
-// Debugging Middleware: Log Response Headers After Response is Sent
+// Debugging Middleware for Responses
 app.use((req, res, next) => {
     res.on('finish', () => {
-        console.log('--- Response Headers ---');
-        console.log(res.getHeaders());
+        console.log('--- Response Sent ---');
+        console.log('Status:', res.statusCode);
+        console.log('Headers:', res.getHeaders());
     });
     next();
 });
@@ -81,34 +96,33 @@ app.use((req, res, next) => {
 // Application Routes
 app.use('/api', routes);
 
-// Health Check Endpoint (Optional but Recommended)
+// Health Check Endpoint
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK' });
 });
 
-// Error Handling Middleware (Should Be Placed After All Routes)
+// Error Handling Middleware
 app.use(errorsMiddleware);
 
-// Start the Server After Successful Database Connection
+// Start the Application
 async function startApplication() {
     try {
-        // Authenticate Database Connection
+        // Database Connection
         await scheme.authenticate();
         console.log('Database connection established successfully.');
 
-        // Sync Database Models (Use { force: true } cautiously in production)
+        // Sync Database Models
         await scheme.sync();
         console.log('Database synchronized successfully.');
 
-        // Start Express Server
-        app.listen(PORT, () => {
+        // Start Server
+        app.listen(PORT, '0.0.0.0', () => {
             console.log(`Server running on port ${PORT}`);
         });
     } catch (error) {
-        console.error('Error starting the application:', error);
-        process.exit(1); // Exit process with failure
+        console.error('Error starting the application:', error.message);
+        process.exit(1); // Exit with failure
     }
 }
 
-// Initialize the Application
 startApplication();
