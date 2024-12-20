@@ -433,12 +433,20 @@ class TracksService {
         musicalPlatforms = musicalPlatforms ? musicalPlatforms : ["musicbrainz", "apple_music", "spotify", "deezer", "napster", "spotify"];
     
         // Check if previewUrl is valid
-        if (!previewUrl || !previewUrl.endsWith(".mp3")) {
-            console.warn("Warning: No valid preview MP3 URL provided to send to Audd:", previewUrl);
-            return { error: "No valid preview MP3 URL provided." }; // Optional: Return an error object if needed
+        if (!previewUrl) {
+            console.warn("Warning: No preview URL provided to send to Audd");
+            return { error: "No preview URL provided." };
+        }
+
+        // Validate URL format
+        try {
+            new URL(previewUrl);
+        } catch (e) {
+            console.warn("Warning: Invalid URL format:", previewUrl);
+            return { error: "Invalid URL format." };
         }
     
-        console.log("Sending this previewUrl to Audd:", previewUrl); // Log the preview URL being sent
+        console.log("Sending this previewUrl to Audd:", previewUrl);
     
         const formData = new FormData();
         formData.append("api_token", process.env.API_AUDD_TOKEN);
@@ -447,28 +455,39 @@ class TracksService {
     
         try {
             const user = await UsersModel.findOne({ where: { id: userId } });
+            if (!user) {
+                throw new Error("User not found");
+            }
+            
             user.totalAuddRequests += 1;
-            user.save();
+            await user.save();
     
             const { data } = await axios.post("https://api.audd.io/", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 },
+                timeout: 30000 // 30 seconds timeout
             });
     
-            console.log("Response from Audd:", data); // Log the response
-    
-            if (data.result?.spotify && data.result?.spotify?.available_markets) {
-                delete data.result.spotify.available_markets;
+            if (!data) {
+                throw new Error("No data received from Audd");
             }
-            if (data.result?.spotify && data.result?.spotify?.album.available_markets) {
-                delete data.result.spotify.album.available_markets;
+    
+            console.log("Response from Audd:", data);
+    
+            if (data.result?.spotify) {
+                if (data.result.spotify.available_markets) {
+                    delete data.result.spotify.available_markets;
+                }
+                if (data.result.spotify.album?.available_markets) {
+                    delete data.result.spotify.album.available_markets;
+                }
             }
     
             return data;
         } catch (error) {
-            console.error("Error while sending to Audd:", error); // Log errors
-            throw error;
+            console.error("Error while sending to Audd:", error.message);
+            throw new ApiError(500, `Failed to process audio: ${error.message}`);
         }
     }
     
