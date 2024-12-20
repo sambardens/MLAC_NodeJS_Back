@@ -438,6 +438,8 @@ class TracksService {
             return { error: "No valid preview MP3 URL provided." }; // Optional: Return an error object if needed
         }
     
+        console.log("Sending this previewUrl to Audd:", previewUrl); // Log the preview URL being sent
+    
         const formData = new FormData();
         formData.append("api_token", process.env.API_AUDD_TOKEN);
         formData.append("url", previewUrl);
@@ -454,6 +456,8 @@ class TracksService {
                 },
             });
     
+            console.log("Response from Audd:", data); // Log the response
+    
             if (data.result?.spotify && data.result?.spotify?.available_markets) {
                 delete data.result.spotify.available_markets;
             }
@@ -463,10 +467,11 @@ class TracksService {
     
             return data;
         } catch (error) {
-            console.error("Error:", error.data);
+            console.error("Error while sending to Audd:", error); // Log errors
             throw error;
         }
     }
+    
     
 
     async editSettings(data) {
