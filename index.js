@@ -95,6 +95,14 @@ app.use((req, res, next) => {
 
 // Application Routes
 app.use('/api', routes);
+app.get('/db-test', async (req, res) => {
+    try {
+        const [result] = await scheme.query('SELECT 1 + 1 AS solution');
+        res.json({ success: true, result });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 // Health Check Endpoint
 app.get('/health', (req, res) => {
