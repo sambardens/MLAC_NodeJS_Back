@@ -173,13 +173,9 @@ class TracksService {
         const cutAudio = await this.cutAudio(data.track, user.id);
         const checkAccessForSpotify = await this.checkAccessForSpotify(cutAudio, data.bapSpotifyId, { mp3Format: data.track, originalFormat: data.originalName, cut: cutAudio }, user.id);
 
-        if (!checkAccessForSpotify?.result) throw ApiError.badRequest("This track is not exist in Spotify");
-
-        // await this.checkRelease(checkAccessForSpotify?.result?.spotify?.id, data.bapId);
+        if (!checkAccessForSpotify?.result) throw ApiError.badRequest("This track does not exist on Spotify");
 
         const spotifyCopyright = await spotifyService.getSpotifyTotalTracksAndAppleMusicData(checkAccessForSpotify?.result?.spotify?.album?.id, true);
-
-        // if (!spotifyCopyright.totalTracks) throw ApiError.badRequest('You can\'t create a release by upload this track. Try to upload another track');
 
         const release = await releaseService.createRelease(user, data.bapId, {
             name: checkAccessForSpotify?.result?.album?.spotify?.name || checkAccessForSpotify?.result?.album,
@@ -195,12 +191,14 @@ class TracksService {
         });
 
         const preview = await this.convertTrackToPreview(cutAudio, user.id);
+        const auddData = await this.getDataFromPlatformsByPreviewUrl(checkAccessForSpotify?.result?.spotify?.preview_url, ["apple_music", "spotify"], user.id);
+
         const { dataValues } = await TracksModel.create({
             releaseId: release.id,
             bapId: release.dataValues.bapId,
             ...data,
             uniqueName: data.track,
-            info: JSON.stringify({ ...checkAccessForSpotify, preview }),
+            info: JSON.stringify({ ...checkAccessForSpotify, preview, auddData }),
             name: checkAccessForSpotify?.result?.spotify?.name || data.name,
             position: data.position ? data.position : checkAccessForSpotify?.result?.spotify?.track_number || 1,
             socialLinks: checkAccessForSpotify?.result?.song_link,
@@ -211,11 +209,11 @@ class TracksService {
             discNumber: checkAccessForSpotify?.result?.apple_music?.discNumber || checkAccessForSpotify?.result?.spotify?.disc_number,
             isrc: checkAccessForSpotify?.result?.spotify?.external_ids?.isrc || checkAccessForSpotify?.result?.apple_music?.isrc,
             spotifyId: checkAccessForSpotify?.result?.spotify?.id,
-            spotifyPreviewUrl: checkAccessForSpotify?.result?.spotify?.preview_url,
+            spotifyPreviewUrl: checkAccessForSpotify?.result?.spotify?.preview_url, // Ensure preview URL is saved
             timeCode: checkAccessForSpotify?.result?.timecode,
             albumSpotifyId: checkAccessForSpotify?.result?.spotify?.album?.id,
             explicit: checkAccessForSpotify?.result?.spotify?.explicit,
-            spotifyLink: checkAccessForSpotify?.result?.spotify?.external_urls?.spotify,
+            spotifyLink: checkAccessForSpotify?.result?.spotify?.external_urls?.spotify, // Ensure Spotify link is saved
         });
 
         await this.editMetaData(dataValues);
@@ -224,7 +222,7 @@ class TracksService {
         dataValues.bapId = +dataValues.bapId;
 
         return {
-            trackInfo: { ...dataValues, info: { ...checkAccessForSpotify, preview: cutAudio, full: data.track } },
+            trackInfo: { ...dataValues, info: { ...checkAccessForSpotify, preview: cutAudio, full: data.track, auddData } },
             releaseInfo: {
                 ...release.dataValues,
                 additionalInfo: {
