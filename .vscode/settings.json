@@ -3,5 +3,9 @@
         "audd",
         "Eveara",
         "keyid"
-    ]
+    ],
+    "npm-intellisense.scanDevDependencies": true,
+    "npm-intellisense.showBuildInLibs": true,
+    "typescript.tsserver.web.projectWideIntellisense.suppressSemanticErrors": true,
+    "npm-intellisense.packageSubfoldersIntellisense": true
 }

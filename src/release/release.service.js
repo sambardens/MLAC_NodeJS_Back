@@ -263,8 +263,15 @@ class ReleaseService {
 
         if (!release) throw ApiError.badRequest("We don`t find release with this Spotify ID");
 
+        // Ensure preview URLs are included in streaming links
+        const processedLinks = allTracksStreamingLinks.map(track => ({
+            ...track,
+            auddPreviewUrl: track.preview_url || track.previewUrl,
+            timestamp: new Date().toISOString()
+        }));
+
         const data = {
-            allTracksStreamingLinks: JSON.stringify(allTracksStreamingLinks),
+            allTracksStreamingLinks: JSON.stringify(processedLinks),
         };
         const newRelease = await this.editRelease(release.id, data);
 
