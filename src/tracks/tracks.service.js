@@ -438,29 +438,17 @@ class TracksService {
         formData.append("return", musicalPlatforms.join(","));
 
         try {
-            const user = await UsersModel.findOne({ where: { id: userId } });
-            user.totalAuddRequests += 1;
-            user.save();
-
             const { data } = await axios.post("https://api.audd.io/", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 },
             });
-
-            if (data.result?.spotify && data.result?.spotify?.available_markets) {
-                delete data.result.spotify.available_markets;
-            }
-            if (data.result?.spotify && data.result?.spotify?.album.available_markets) {
-                delete data.result.spotify.album.available_markets;
-            }
-
+            console.log("Audd API Response:", data); // Log the full response
             return data;
         } catch (error) {
-            console.error("Error:", error.data);
+            console.error("Audd API Error:", error.response ? error.response.data : error.message);
             throw error;
         }
-    }
 
     async editSettings(data) {
         for (const uniqueName in data) {
@@ -749,7 +737,7 @@ class TracksService {
             formData.append("file", fs.createReadStream(path.resolve("tracks", `cut_${bodyData.uniqueName}`)));
         }
 
-        const { data } = await axios.post("https://api.audd.io", formData, {
+        const { data } = await axios.post("https://api.audd.io/", formData, {
             params: {
                 api_token: process.env.API_AUDD_TOKEN,
                 return: musicalPlatforms.join(","),
