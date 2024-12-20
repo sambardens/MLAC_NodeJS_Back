@@ -15,7 +15,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Load Environment Variables
-dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
+dotenv.config();
 
 // Initialize Express App
 const app = express();
@@ -33,7 +33,6 @@ const allowedOrigins = [
 app.use(
     cors({
         origin: (origin, callback) => {
-            // Allow requests with no origin (e.g., mobile apps, curl)
             if (!origin) {
                 console.log('CORS: Request with no origin allowed');
                 return callback(null, true);
@@ -46,7 +45,7 @@ app.use(
                 return callback(new Error('CORS policy does not allow access from this origin'), false);
             }
         },
-        credentials: true, // Allow cookies and credentials
+        credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
     })
@@ -95,17 +94,22 @@ app.use((req, res, next) => {
 
 // Application Routes
 app.use('/api', routes);
+
+// Database Test Route
 app.get('/db-test', async (req, res) => {
     try {
+        console.log('Testing database connection...');
         const [result] = await scheme.query('SELECT 1 + 1 AS solution');
         res.json({ success: true, result });
     } catch (error) {
+        console.error('Database test error:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 // Health Check Endpoint
 app.get('/health', (req, res) => {
+    console.log('Health endpoint hit');
     res.status(200).json({ status: 'OK' });
 });
 
@@ -115,6 +119,7 @@ app.use(errorsMiddleware);
 // Start the Application
 async function startApplication() {
     try {
+        console.log('Starting application...');
         // Database Connection
         await scheme.authenticate();
         console.log('Database connection established successfully.');
