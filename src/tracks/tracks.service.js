@@ -430,6 +430,11 @@ class TracksService {
     }
 
     async getDataFromPlatformsByPreviewUrl(previewUrl, musicalPlatforms, userId) {
+        console.log("Debug: getDataFromPlatformsByPreviewUrl called");
+console.log("Preview URL:", previewUrl);
+console.log("Musical Platforms:", musicalPlatforms);
+console.log("User ID:", userId);
+
         musicalPlatforms = musicalPlatforms ? musicalPlatforms : ["musicbrainz", "apple_music", "spotify", "deezer", "napster", "spotify"];
 
         const formData = new FormData();
