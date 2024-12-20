@@ -344,19 +344,32 @@ class TracksService {
     }
 
     async checkAccessForSpotify(cutAudio, bapSpotifyId, track, userId) {
-        const baseUrl = process.env.API_URL; // Use the API_URL from the .env file
+        const baseUrl = process.env.API_URL || "http://localhost:3000";
         const auddUrl = `${baseUrl}/api/tracks/listen/mp3/${cutAudio}`;
-        
-        // Debug statement to log the base URL and constructed URL
+    
+        // Debug statements for clarity
         console.log(`Debug - Base URL: ${baseUrl}`);
         console.log(`Debug - Constructed Audd URL: ${auddUrl}`);
+        console.log(`Debug - Input Data:`, { cutAudio, bapSpotifyId, track, userId });
     
-        const auddCheck = await this.getDataFromPlatformsByPreviewUrl(auddUrl, ["apple_music", "spotify"], userId);
+        let auddCheck;
+        try {
+            auddCheck = await this.getDataFromPlatformsByPreviewUrl(auddUrl, ["apple_music", "spotify"], userId);
+        } catch (error) {
+            console.error("Error during API call to Audd:", error);
+            throw new Error("Failed to retrieve data from Audd API");
+        }
+    
+        if (!auddCheck || !auddCheck.result) {
+            throw new Error("Audd API response is invalid or does not contain a result");
+        }
+    
+        console.log("Audd API Response:", auddCheck);
     
         const artistSpotifyIds = auddCheck.result?.spotify?.album?.artists?.map((artist) => artist.id);
     
         if (bapSpotifyId) {
-            if (!artistSpotifyIds || artistSpotifyIds?.length === 0 || artistSpotifyIds.find((artistId) => artistId === bapSpotifyId)) {
+            if (!artistSpotifyIds || artistSpotifyIds.length === 0 || artistSpotifyIds.find((artistId) => artistId === bapSpotifyId)) {
                 return auddCheck;
             } else {
                 for (const key in track) {
@@ -364,15 +377,13 @@ class TracksService {
                 }
                 throw ApiError.forbidden("This track is copyright by another artist");
             }
-        } else {
-            if (artistSpotifyIds?.length > 0) {
-                for (const key in track) {
-                    await this.removeTrackFromDirectory(track[key], userId);
-                }
-                throw ApiError.forbidden("This track is copyright by another artist");
+        } else if (artistSpotifyIds?.length > 0) {
+            for (const key in track) {
+                await this.removeTrackFromDirectory(track[key], userId);
             }
+            throw ApiError.forbidden("This track is copyright by another artist");
         }
-        
+    
         return auddCheck;
     }
 
