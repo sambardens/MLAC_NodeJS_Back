@@ -35,6 +35,15 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 
 dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 
+// Add logger utility function
+const log = (func, msg, data = null) => {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] ${func}: ${msg}`);
+    if (data) {
+        console.log('Data:', JSON.stringify(data, null, 2));
+    }
+}
+
 class TracksService {
     async getTrackWithOptions(where, options) {
         const track = await TracksModel.findOne({ where, ...options });
