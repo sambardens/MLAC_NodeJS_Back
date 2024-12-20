@@ -43,7 +43,7 @@ class ImagesService {
         return (
             url.startsWith("https://i.scdn.co/image") ||
             url.startsWith("https://export-download.canva.com") ||
-            url.startsWith("https://api-major-labl.pixy.pro/") ||
+            url.startsWith("https://mlacnodejsback-production.up.railway.app") ||
             url.startsWith("https://lh3.googleusercontent.com/") ||
             url.startsWith("https://platform-lookaside.fbsbx.com") ||
             url.startsWith("https://mosaic.scdn.co/") ||
