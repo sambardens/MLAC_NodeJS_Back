@@ -379,88 +379,91 @@ class TracksService {
     async checkForCopyright(uniqueName) {
         const formData = new FormData();
         formData.append("file", fs.createReadStream(path.resolve("tracks", uniqueName)));
-        let { data } = await axios.post("https://api.audd.io/", formData, {
-            params: {
-                api_token: process.env.API_AUDD_TOKEN,
-                method: "recognize",
-                return: "timecode",
-            },
-        });
-
-        if (data.status === "error") {
-            data = {
-                status: "error",
-                errorCode: data.error.error_code,
-                errorMessage: data.error.error_message,
-            };
+    
+        try {
+            const { data } = await axios.post("https://api.audd.io/", formData, {
+                params: {
+                    api_token: process.env.API_AUDD_TOKEN,
+                    method: "recognize",
+                    return: "timecode",
+                },
+                headers: formData.getHeaders(),
+            });
+    
+            if (data.status === "error") {
+                console.error(`Audd API Error: ${data.error.error_message}`);
+                return {
+                    status: "error",
+                    errorCode: data.error.error_code,
+                    errorMessage: data.error.error_message,
+                };
+            }
+    
+            if (data.result) {
+                console.log("Track recognized successfully:", data.result);
+                return { status: "success", result: data.result };
+            }
+    
+            console.warn("No result found for the track.");
+            return { status: "no_result" };
+        } catch (error) {
+            console.error("Error communicating with Audd API:", error.message);
+            throw new ApiError(500, "Failed to communicate with Audd API");
         }
-
-        if (data.status === "success") {
-            data.status = "unsuccess";
-        }
-        if (data.result === null) {
-            data.status = "success";
-        }
-
-        return data;
     }
-
-    async convertTrackToPreview(uniqueName, userId) {
-        const musicalPlatforms = ["spotify", "deezer", "napster"];
-
-        const formData = new FormData();
-        const pathToFile = fs.createReadStream(path.resolve("tracks", uniqueName));
-        formData.append("file", pathToFile);
-
-        const user = await UsersModel.findOne({ where: { id: userId } });
-        user.totalAuddRequests += 1;
-        user.save();
-
-        let { data } = await axios.post("https://api.audd.io/", formData, {
-            params: {
-                api_token: process.env.API_AUDD_TOKEN,
-                return: musicalPlatforms.join(","),
-                length: 10,
-                format: "wav",
-            },
-        });
-
-        const preview = this.getPreviewTrack(data, musicalPlatforms);
-        return preview;
-    }
+    
 
     async getDataFromPlatformsByPreviewUrl(previewUrl, musicalPlatforms, userId) {
-        musicalPlatforms = musicalPlatforms ? musicalPlatforms : ["musicbrainz", "apple_music", "spotify", "deezer", "napster", "spotify"];
-
+        // Set default musical platforms if none are provided
+        musicalPlatforms = musicalPlatforms || ["musicbrainz", "apple_music", "spotify", "deezer", "napster"];
+    
+        // Prepare the form data
         const formData = new FormData();
-        formData.append("api_token", process.env.API_AUDD_TOKEN);
-        formData.append("url", previewUrl);
-        formData.append("return", musicalPlatforms.join(","));
-
+        formData.append("api_token", process.env.API_AUDD_TOKEN); // Ensure the token is loaded
+        formData.append("url", previewUrl); // Use the provided preview URL
+        formData.append("return", musicalPlatforms.join(",")); // Specify the platforms to query
+    
         try {
+            // Increment the user's Audd request count
             const user = await UsersModel.findOne({ where: { id: userId } });
-            user.totalAuddRequests += 1;
-            user.save();
-
+            if (user) {
+                user.totalAuddRequests += 1;
+                await user.save();
+            }
+    
+            // Make the POST request to Audd
             const { data } = await axios.post("https://api.audd.io/", formData, {
                 headers: {
-                    "Content-Type": "multipart/form-data",
+                    ...formData.getHeaders(), // Include the FormData headers
                 },
             });
-
-            if (data.result?.spotify && data.result?.spotify?.available_markets) {
+    
+            // Remove large unnecessary data to save memory
+            if (data.result?.spotify?.available_markets) {
                 delete data.result.spotify.available_markets;
             }
-            if (data.result?.spotify && data.result?.spotify?.album.available_markets) {
+            if (data.result?.spotify?.album?.available_markets) {
                 delete data.result.spotify.album.available_markets;
             }
-
-            return data;
+    
+            // Log success and return the data
+            if (data.result) {
+                console.log("Audd API response received:", data.result);
+                return data;
+            } else {
+                console.warn("Audd API returned no result:", data);
+                return { status: "no_result", data };
+            }
         } catch (error) {
-            console.error("Error:", error.data);
-            throw error;
+            // Log detailed error for debugging
+            console.error("Error communicating with Audd API:", error.message);
+            console.error("Response data (if any):", error.response?.data);
+    
+            // Throw an error that your application can handle
+            throw new ApiError(500, "Failed to fetch data from Audd API");
         }
     }
+    
 
     async editSettings(data) {
         for (const uniqueName in data) {
