@@ -27,70 +27,36 @@ const PORT = process.env.PORT || 3000; // Default to 3000 for local testing
 const allowedOrigins = [
     'http://localhost:3000', // Local development
     'https://mlac-react-front.vercel.app', // Deployed frontend
+    'https://mlac-react-admin.vercel.app', // Deployed admin frontend
 ];
 
 // CORS Configuration
 app.use(
     cors({
         origin: (origin, callback) => {
-            if (!origin) {
-                console.log('CORS: Request with no origin allowed');
-                return callback(null, true);
-            }
-            if (allowedOrigins.includes(origin)) {
-                console.log(`CORS: Request from allowed origin: ${origin}`);
-                return callback(null, true);
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
             } else {
-                console.error(`CORS: Request blocked from origin: ${origin}`);
-                return callback(new Error('CORS policy does not allow access from this origin'), false);
+                callback(new Error('CORS policy does not allow access from this origin'), false);
             }
         },
         credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // HTTP methods to allow
+        allowedHeaders: ['Content-Type', 'Authorization'], // Headers to allow
     })
 );
-
-// Handle Preflight Requests Globally
-app.options('*', (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.sendStatus(200);
-});
 
 // Middleware for Parsing JSON and Cookies
 app.use(express.json());
 app.use(cookieParser());
 
 // Middleware for File Uploads
-app.use(fileUpload({}));
+app.use(fileUpload());
 
 // Serve Static Files
 app.use(express.static(path.resolve(__dirname, 'images')));
 app.use(express.static(path.resolve(__dirname, 'videos')));
 app.use('/apidoc', express.static(path.resolve(__dirname, 'apidoc')));
-
-// Debugging Middleware for Incoming Requests
-app.use((req, res, next) => {
-    console.log('--- Incoming Request ---');
-    console.log('Path:', req.path);
-    console.log('Method:', req.method);
-    console.log('Headers:', req.headers);
-    console.log('Body:', req.body);
-    next();
-});
-
-// Debugging Middleware for Responses
-app.use((req, res, next) => {
-    res.on('finish', () => {
-        console.log('--- Response Sent ---');
-        console.log('Status:', res.statusCode);
-        console.log('Headers:', res.getHeaders());
-    });
-    next();
-});
 
 // Application Routes
 app.use('/api', routes);
@@ -109,7 +75,6 @@ app.get('/db-test', async (req, res) => {
 
 // Health Check Endpoint
 app.get('/health', (req, res) => {
-    console.log('Health endpoint hit');
     res.status(200).json({ status: 'OK' });
 });
 
