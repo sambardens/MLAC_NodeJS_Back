@@ -479,7 +479,7 @@ await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 1 second
         console.log("User ID:", userId);
     
         // Add this delay after the API call
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 1 second
     
         const formData = new FormData();
         formData.append("api_token", process.env.API_AUDD_TOKEN);
@@ -521,6 +521,7 @@ await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 1 second
             throw error;
         }
     }
+
     
     async editSettings(data) {
         for (const uniqueName in data) {
