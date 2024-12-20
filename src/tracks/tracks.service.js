@@ -470,38 +470,58 @@ await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 1 second
     }
 
     async getDataFromPlatformsByPreviewUrl(previewUrl, musicalPlatforms, userId) {
+        // Default musical platforms if not provided
         musicalPlatforms = musicalPlatforms ? musicalPlatforms : ["musicbrainz", "apple_music", "spotify", "deezer", "napster", "spotify"];
-
+    
+        console.log("Debug - Input Parameters:");
+        console.log("Preview URL:", previewUrl);
+        console.log("Musical Platforms:", musicalPlatforms);
+        console.log("User ID:", userId);
+    
+        // Add this delay after the API call
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+    
         const formData = new FormData();
         formData.append("api_token", process.env.API_AUDD_TOKEN);
         formData.append("url", previewUrl);
         formData.append("return", musicalPlatforms.join(","));
-
+    
+        console.log("Debug - FormData before API call:");
+        console.log("API Token:", process.env.API_AUDD_TOKEN);
+        console.log("URL:", previewUrl);
+        console.log("Return Fields:", musicalPlatforms.join(","));
+    
         try {
             const user = await UsersModel.findOne({ where: { id: userId } });
             user.totalAuddRequests += 1;
-            user.save();
-
+            await user.save();
+    
+            console.log("Debug - User after incrementing totalAuddRequests:", user);
+    
             const { data } = await axios.post("https://api.audd.io/", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 },
             });
-
+    
+            console.log("Debug - Response from Audd API:", data);
+    
             if (data.result?.spotify && data.result?.spotify?.available_markets) {
                 delete data.result.spotify.available_markets;
             }
             if (data.result?.spotify && data.result?.spotify?.album.available_markets) {
                 delete data.result.spotify.album.available_markets;
             }
-
+    
+            console.log("Debug - Final Processed Data:", data);
             return data;
         } catch (error) {
-            console.error("Error:", error.data);
+            console.error("Error during Audd API call:", error);
+            console.error("Error Details:", error.response ? error.response.data : error.message);
             throw error;
         }
     }
-
+    
     async editSettings(data) {
         for (const uniqueName in data) {
             const isValidObject = this.isAllowedObjectKeys(data[uniqueName], [
