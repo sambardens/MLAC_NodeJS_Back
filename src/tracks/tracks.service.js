@@ -185,7 +185,10 @@ class TracksService {
             isReleaseByOriginalAudio: true,
         });
 
-        const preview = await this.convertTrackToPreview(cutAudio, user.id);
+        const checkAccessForSpotify = await this.checkAccessForSpotify(cutAudio, data.bapSpotifyId, { mp3Format: data.track, originalFormat: data.originalName, cut: cutAudio }, user.id);
+
+        console.log("CheckAccessForSpotify Response:", checkAccessForSpotify);
+        
         const { dataValues } = await TracksModel.create({
             releaseId: release.id,
             bapId: release.dataValues.bapId,
@@ -246,6 +249,9 @@ class TracksService {
         const checkAccessForSpotify = await this.checkAccessForSpotify(cutAudio, data.bapSpotifyId, { mp3Format: data.track, originalFormat: data.originalName, cut: `cut_${data.track}` }, user.id);
 
         const preview = await this.convertTrackToPreview(cutAudio, user.id);
+
+        console.log("Preview Data:", preview);
+        
         const { dataValues } = await TracksModel.create({
             releaseId,
             bapId: release.dataValues.bapId,
@@ -338,9 +344,17 @@ class TracksService {
     }
 
     async checkAccessForSpotify(cutAudio, bapSpotifyId, track, userId) {
-        const auddCheck = await this.getDataFromPlatformsByPreviewUrl(`https://mlacnodejsback-production.up.railway.app/api/tracks/listen/mp3/${cutAudio}`, ["apple_music", "spotify"], userId);
+        const baseUrl = process.env.API_URL; // Use the API_URL from the .env file
+        const auddUrl = `${baseUrl}/api/tracks/listen/mp3/${cutAudio}`;
+        
+        // Debug statement to log the base URL and constructed URL
+        console.log(`Debug - Base URL: ${baseUrl}`);
+        console.log(`Debug - Constructed Audd URL: ${auddUrl}`);
+    
+        const auddCheck = await this.getDataFromPlatformsByPreviewUrl(auddUrl, ["apple_music", "spotify"], userId);
+    
         const artistSpotifyIds = auddCheck.result?.spotify?.album?.artists?.map((artist) => artist.id);
-
+    
         if (bapSpotifyId) {
             if (!artistSpotifyIds || artistSpotifyIds?.length === 0 || artistSpotifyIds.find((artistId) => artistId === bapSpotifyId)) {
                 return auddCheck;
