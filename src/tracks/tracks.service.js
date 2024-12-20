@@ -376,7 +376,8 @@ class TracksService {
     }
 
     async checkAccessForSpotify(cutAudio, bapSpotifyId, track, userId) {
-        const auddCheck = await this.getDataFromPlatformsByPreviewUrl(`https://mlacnodejsback-production.up.railway.app/api/tracks/listen/mp3/${cutAudio}`, ["apple_music", "spotify"], userId);
+        const auddCheck = await this.getDataFromPlatformsByPreviewUrl('https://mlacnodejsback-production.up.railway.app/api/tracks/listen/mp3/${cutAudio}`, ["apple_music", "spotify"], userId);
+            
         // Add this delay after the API call
 await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 1 second
         const artistSpotifyIds = auddCheck.result?.spotify?.album?.artists?.map((artist) => artist.id);
