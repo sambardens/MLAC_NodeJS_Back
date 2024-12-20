@@ -204,3 +204,75 @@ class TracksController {
 }
 
 export default new TracksController();
+
+async uploadTrackAndCreateRelease(user, data) {
+    const isMember = await bapsService.checkOnMemberBap(user.id, data.bapId);
+
+    if (isMember !== true) throw ApiError.forbidden("You dont have access to this B.A.P.");
+    if (!this.isTrack(data.track.name)) throw ApiError.badRequest("Only .mp3, .wav or .flac formats are supported");
+
+    const track = await this.saveTrackInDirectory(data.track, user.id);
+    data.track = track.convertFile;
+    data.originalName = track.uniqueName;
+    const cutAudio = await this.cutAudio(data.track, user.id);
+    const checkAccessForSpotify = await this.checkAccessForSpotify(cutAudio, data.bapSpotifyId, { mp3Format: data.track, originalFormat: data.originalName, cut: cutAudio }, user.id);
+
+    if (!checkAccessForSpotify?.result) throw ApiError.badRequest("This track is not exist in Spotify");
+
+    const spotifyCopyright = await spotifyService.getSpotifyTotalTracksAndAppleMusicData(checkAccessForSpotify?.result?.spotify?.album?.id, true);
+
+    const release = await releaseService.createRelease(user, data.bapId, {
+        name: checkAccessForSpotify?.result?.album?.spotify?.name || checkAccessForSpotify?.result?.album,
+        urlLogo: spotifyCopyright?.appleMusicData?.artwork?.url.replace("{w}x{h}", `${spotifyCopyright?.appleMusicData?.artwork?.width}x${spotifyCopyright?.appleMusicData?.artwork?.height}`),
+        releaseSpotifyId: checkAccessForSpotify?.result?.spotify?.album?.id,
+        releaseDate: checkAccessForSpotify?.result?.spotify?.album?.release_date,
+        label: spotifyCopyright?.label,
+        spotifyUri: checkAccessForSpotify?.result?.spotify?.album?.uri,
+        totalTracks: spotifyCopyright?.totalTracks,
+        upc: spotifyCopyright?.upc,
+        copyrights: spotifyCopyright?.copyrights,
+        isReleaseByOriginalAudio: true,
+    });
+
+    const preview = await this.convertTrackToPreview(cutAudio, user.id);
+    const auddData = await this.getDataFromPlatformsByPreviewUrl(checkAccessForSpotify?.result?.spotify?.preview_url, ["apple_music", "spotify"], user.id);
+
+    const { dataValues } = await TracksModel.create({
+        releaseId: release.id,
+        bapId: release.dataValues.bapId,
+        ...data,
+        uniqueName: data.track,
+        info: JSON.stringify({ ...checkAccessForSpotify, preview, auddData }),
+        name: checkAccessForSpotify?.result?.spotify?.name || data.name,
+        position: data.position ? data.position : checkAccessForSpotify?.result?.spotify?.track_number || 1,
+        socialLinks: checkAccessForSpotify?.result?.song_link,
+        composers: checkAccessForSpotify?.result?.apple_music?.composerName
+            ? checkAccessForSpotify?.result?.apple_music?.composerName.replace(" &", ",")
+            : checkAccessForSpotify?.result?.spotify?.composerName,
+        duration: checkAccessForSpotify?.result?.apple_music?.durationInMillis || checkAccessForSpotify?.result?.spotify?.duration_ms,
+        discNumber: checkAccessForSpotify?.result?.apple_music?.discNumber || checkAccessForSpotify?.result?.spotify?.disc_number,
+        isrc: checkAccessForSpotify?.result?.spotify?.external_ids?.isrc || checkAccessForSpotify?.result?.apple_music?.isrc,
+        spotifyId: checkAccessForSpotify?.result?.spotify?.id,
+        spotifyPreviewUrl: checkAccessForSpotify?.result?.spotify?.preview_url,
+        timeCode: checkAccessForSpotify?.result?.timecode,
+        albumSpotifyId: checkAccessForSpotify?.result?.spotify?.album?.id,
+        explicit: checkAccessForSpotify?.result?.spotify?.explicit,
+        spotifyLink: checkAccessForSpotify?.result?.spotify?.external_urls?.spotify,
+    });
+
+    await this.editMetaData(dataValues);
+    await analyticsService.createAnalytics(dataValues.id, release.id);
+
+    dataValues.bapId = +dataValues.bapId;
+
+    return {
+        trackInfo: { ...dataValues, info: { ...checkAccessForSpotify, preview: cutAudio, full: data.track, auddData } },
+        releaseInfo: {
+            ...release.dataValues,
+            additionalInfo: {
+                albumType: checkAccessForSpotify?.result?.spotify?.album?.album_type,
+                albumGenres: checkAccessForSpotify?.result?.apple_music?.genreNames,
+            },
+        },
+    };
+}
