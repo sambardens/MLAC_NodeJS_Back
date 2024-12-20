@@ -338,7 +338,7 @@ class TracksService {
     }
 
     async checkAccessForSpotify(cutAudio, bapSpotifyId, track, userId) {
-        const auddCheck = await this.getDataFromPlatformsByPreviewUrl(`mlacnodejsback-production.up.railway.app/api/tracks/listen/mp3/${cutAudio}`, ["apple_music", "spotify"], userId);
+        const auddCheck = await this.getDataFromPlatformsByPreviewUrl(`https://mlacnodejsback-production.up.railway.app/api/tracks/listen/mp3/${cutAudio}`, ["apple_music", "spotify"], userId);
         const artistSpotifyIds = auddCheck.result?.spotify?.album?.artists?.map((artist) => artist.id);
 
         if (bapSpotifyId) {
