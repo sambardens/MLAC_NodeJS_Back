@@ -430,42 +430,44 @@ class TracksService {
     }
 
     async getDataFromPlatformsByPreviewUrl(previewUrl, musicalPlatforms, userId) {
-        console.log("Debug: getDataFromPlatformsByPreviewUrl called");
-console.log("Preview URL:", previewUrl);
-console.log("Musical Platforms:", musicalPlatforms);
-console.log("User ID:", userId);
-
         musicalPlatforms = musicalPlatforms ? musicalPlatforms : ["musicbrainz", "apple_music", "spotify", "deezer", "napster", "spotify"];
-
+    
+        // Check if previewUrl is valid
+        if (!previewUrl || !previewUrl.endsWith(".mp3")) {
+            console.warn("Warning: No valid preview MP3 URL provided to send to Audd:", previewUrl);
+            return { error: "No valid preview MP3 URL provided." }; // Optional: Return an error object if needed
+        }
+    
         const formData = new FormData();
         formData.append("api_token", process.env.API_AUDD_TOKEN);
         formData.append("url", previewUrl);
         formData.append("return", musicalPlatforms.join(","));
-
+    
         try {
             const user = await UsersModel.findOne({ where: { id: userId } });
             user.totalAuddRequests += 1;
             user.save();
-
+    
             const { data } = await axios.post("https://api.audd.io/", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 },
             });
-
+    
             if (data.result?.spotify && data.result?.spotify?.available_markets) {
                 delete data.result.spotify.available_markets;
             }
             if (data.result?.spotify && data.result?.spotify?.album.available_markets) {
                 delete data.result.spotify.album.available_markets;
             }
-
+    
             return data;
         } catch (error) {
             console.error("Error:", error.data);
             throw error;
         }
     }
+    
 
     async editSettings(data) {
         for (const uniqueName in data) {
