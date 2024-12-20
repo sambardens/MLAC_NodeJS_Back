@@ -153,28 +153,51 @@ class TracksService {
     }
 
     async uploadTrackAndCreateRelease(user, data) {
+        // Debug: Log the function start
+        console.log("Debug - uploadTrackAndCreateRelease started with user ID:", user.id, "and BAP ID:", data.bapId);
+    
+        // Check if user is a member of the B.A.P.
         const isMember = await bapsService.checkOnMemberBap(user.id, data.bapId);
-
+        console.log("Debug - isMember result:", isMember);
+    
         if (isMember !== true) throw ApiError.forbidden("You dont have access to this B.A.P.");
         if (!this.isTrack(data.track.name)) throw ApiError.badRequest("Only .mp3, .wav or .flac formats are supported");
-
+    
         const track = await this.saveTrackInDirectory(data.track, user.id);
+        console.log("Debug - Track saved in directory:", track);
+    
         data.track = track.convertFile;
         data.originalName = track.uniqueName;
+    
+        // Process the track audio
         const cutAudio = await this.cutAudio(data.track, user.id);
-        const checkAccessForSpotify = await this.checkAccessForSpotify(cutAudio, data.bapSpotifyId, { mp3Format: data.track, originalFormat: data.originalName, cut: cutAudio }, user.id);
-
+        console.log("Debug - Audio cut result:", cutAudio);
+    
+        // Validate Spotify access
+        const checkAccessForSpotify = await this.checkAccessForSpotify(
+            cutAudio,
+            data.bapSpotifyId,
+            { mp3Format: data.track, originalFormat: data.originalName, cut: cutAudio },
+            user.id
+        );
+        console.log("Debug - checkAccessForSpotify result:", checkAccessForSpotify);
+    
         if (!checkAccessForSpotify?.result) throw ApiError.badRequest("This track is not exist in Spotify");
-
-        // await this.checkRelease(checkAccessForSpotify?.result?.spotify?.id, data.bapId);
-
-        const spotifyCopyright = await spotifyService.getSpotifyTotalTracksAndAppleMusicData(checkAccessForSpotify?.result?.spotify?.album?.id, true);
-
-        // if (!spotifyCopyright.totalTracks) throw ApiError.badRequest('You can\'t create a release by upload this track. Try to upload another track');
-
+    
+        // Fetch additional data about the Spotify release
+        const spotifyCopyright = await spotifyService.getSpotifyTotalTracksAndAppleMusicData(
+            checkAccessForSpotify?.result?.spotify?.album?.id,
+            true
+        );
+        console.log("Debug - Spotify copyright data:", spotifyCopyright);
+    
+        // Create release data
         const release = await releaseService.createRelease(user, data.bapId, {
             name: checkAccessForSpotify?.result?.album?.spotify?.name || checkAccessForSpotify?.result?.album,
-            urlLogo: spotifyCopyright?.appleMusicData?.artwork?.url.replace("{w}x{h}", `${spotifyCopyright?.appleMusicData?.artwork?.width}x${spotifyCopyright?.appleMusicData?.artwork?.height}`),
+            urlLogo: spotifyCopyright?.appleMusicData?.artwork?.url.replace(
+                "{w}x{h}",
+                `${spotifyCopyright?.appleMusicData?.artwork?.width}x${spotifyCopyright?.appleMusicData?.artwork?.height}`
+            ),
             releaseSpotifyId: checkAccessForSpotify?.result?.spotify?.album?.id,
             releaseDate: checkAccessForSpotify?.result?.spotify?.album?.release_date,
             label: spotifyCopyright?.label,
@@ -184,8 +207,16 @@ class TracksService {
             copyrights: spotifyCopyright?.copyrights,
             isReleaseByOriginalAudio: true,
         });
-
+        console.log("Debug - Release created:", release);
+    
+        // Pause briefly to ensure external APIs complete processing (if necessary)
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+    
+        // Convert track to preview
         const preview = await this.convertTrackToPreview(cutAudio, user.id);
+        console.log("Debug - Preview generated:", preview);
+    
+        // Save track to the database
         const { dataValues } = await TracksModel.create({
             releaseId: release.id,
             bapId: release.dataValues.bapId,
@@ -208,12 +239,18 @@ class TracksService {
             explicit: checkAccessForSpotify?.result?.spotify?.explicit,
             spotifyLink: checkAccessForSpotify?.result?.spotify?.external_urls?.spotify,
         });
-
+        console.log("Debug - Track saved to database:", dataValues);
+    
+        // Update metadata and analytics
         await this.editMetaData(dataValues);
+        console.log("Debug - Metadata edited successfully");
+    
         await analyticsService.createAnalytics(dataValues.id, release.id);
-
+        console.log("Debug - Analytics created successfully");
+    
+        // Ensure bapId is correctly typed
         dataValues.bapId = +dataValues.bapId;
-
+    
         return {
             trackInfo: { ...dataValues, info: { ...checkAccessForSpotify, preview: cutAudio, full: data.track } },
             releaseInfo: {
@@ -225,6 +262,7 @@ class TracksService {
             },
         };
     }
+    
 
     async uploadTrackToRelease(user, releaseId, data) {
         const release = await releaseService.getRelease({ id: releaseId });
